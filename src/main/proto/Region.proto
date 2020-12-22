@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package my.pyrohivskyi.osmand;
+
+option java_multiple_files = true;
+
+message Region {
+    string name = 1;
+    string lang = 2;
+    string type = 3;
+    string roads = 4;
+    string srtm = 5;
+    string hillshade = 6;
+    string wiki = 7;
+    string translate = 8;
+    repeated double poly = 9 [packed=true];
+}
