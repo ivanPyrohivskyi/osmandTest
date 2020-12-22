@@ -13,5 +13,10 @@ message Region {
     string hillshade = 6;
     string wiki = 7;
     string translate = 8;
-    repeated double poly = 9 [packed=true];
+
+    message Polygons {
+        repeated double poly = 1 [packed=true];
+    }
+
+    repeated Polygons polygons = 9;
 }
