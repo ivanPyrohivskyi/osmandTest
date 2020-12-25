@@ -53,9 +53,8 @@ public class Generate {
     private int calculateHeaderSize(List<Region> regions) {
         int size = 0;
         for(Region region : regions) {
-            size += region.getSerializedSize();
+            size += region.getName().length() + 50;
         }
-        //size *= 1.1;//add empty size for \n in repeated Polygons Region.proto
         return size;
     }
 
