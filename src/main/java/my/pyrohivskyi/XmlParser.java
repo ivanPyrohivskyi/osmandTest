@@ -22,11 +22,23 @@ import my.pyrohivskyi.osmand.Region;
 
 public class XmlParser {
 
-    List<Struct> list;
+    List<RegionXmlStruct> list;
+    final static short MIN_LAT = 0;
+    final static short MIN_LNG = 1;
+    final static short MAX_LAT = 2;
+    final static short MAX_LNG = 3;
+    String pathToPolyhons;
+
+    XmlParser(String pathToPolygons) {
+        this.pathToPolyhons = pathToPolygons;
+        list = new ArrayList<RegionXmlStruct>();
+    }
 
     public List<Region> parseXml(String pathToXmlFile) {
 
         List<Region> regions = new ArrayList<>();
+
+        PolyFinder polyFinder = new PolyFinder(pathToPolyhons);
 
         try {
             File inputFile = new File(pathToXmlFile);
@@ -35,14 +47,13 @@ public class XmlParser {
             Document doc = dBuilder.parse(inputFile);
             doc.getDocumentElement().normalize();
 
-            NodeList nList = doc.getElementsByTagName("region");
+            parseByTagName(doc);
 
-            Element eElement = doc.getDocumentElement();
+            /*Element eElement = doc.getDocumentElement();
+            parseChildNodes(eElement, "");*/
 
-            parseChildNodes(eElement, "");
-
-            for(Struct s : list) {
-                System.out.println(s.name + " " + s.poly_extract);
+            for(RegionXmlStruct s : list) {
+                //System.out.println(s.name + " " + s.poly_extract);
                 Region.Builder regionBuilder = Region.newBuilder();
                 regionBuilder.setName(s.name);
                 if(s.type != null)
@@ -60,6 +71,8 @@ public class XmlParser {
                 if(s.translate != null)
                     regionBuilder.setTranslate(s.translate);
 
+                polyFinder.fillPoly(regionBuilder, s);
+
                 regions.add(regionBuilder.build());
             }
 
@@ -75,10 +88,58 @@ public class XmlParser {
         return regions;
     }
 
-    private List<Struct> parseChildNodes(Element eElement, String parentPolyEctract) {
+    public List<Double> getMinMaxRect(Region region) {
+
+        List<Double> result = new ArrayList<Double>();
+
+        List<Region.Polygons> polygonsList = region.getPolygonsList();
+        Region.Polygons poly;
+        if(polygonsList.size() > 0) {
+            poly = polygonsList.get(0);
+            List<Double> polyList = poly.getPolyList();
+            double minLat = 90, maxLat=-90, minLng=180, maxLng=-180;
+            for(int i = 0; i < polyList.size(); i++) {
+                if(i %2 == 0) {
+                    //lng
+                    minLng = minLng > polyList.get(i) ? polyList.get(i) : minLng;//
+                    maxLng = maxLng < polyList.get(i) ? polyList.get(i) : maxLng;
+                } else {
+                    //lat
+                    minLat = minLat > polyList.get(i) ? polyList.get(i) : minLat;//
+                    maxLat = maxLat < polyList.get(i) ? polyList.get(i) : maxLat;//
+                }
+            }
+            result.add(minLat);
+            result.add(minLng);
+            result.add(maxLat);
+            result.add(maxLng);
+        }
+        return result;
+    }
+
+    private void parseByTagName(Document doc) {
+        if(list == null)
+            list = new ArrayList<RegionXmlStruct>();
+
+        NodeList nList = doc.getElementsByTagName("region");
+        for(int i = 0;  i < nList.getLength(); i++) {
+            Node nNode = nList.item(i);
+            if (nNode.getNodeType() == Node.ELEMENT_NODE) {
+                Element eElement = (Element) nNode;
+                if(eElement.hasAttribute("name")) {
+                    String name = eElement.getAttribute("name");
+                    RegionXmlStruct s = new RegionXmlStruct(name);
+                    s.addOptional(eElement);
+                    list.add(s);
+                }
+            }
+        }
+    }
+
+    /*private List<RegionXmlStruct> parseChildNodes(Element eElement, String parentPolyEctract) {
 
         if(list == null)
-            list = new ArrayList<Struct>();
+            list = new ArrayList<RegionXmlStruct>();
 
         NodeList nodes = eElement.getChildNodes();
         for(int levelOne = 0;  levelOne < nodes.getLength(); levelOne++) {
@@ -99,8 +160,9 @@ public class XmlParser {
                 } else {
                     poly = poly + "/" + name;
                 }
-                Struct s = new Struct(name, poly + ".poly");
+                RegionXmlStruct s = new RegionXmlStruct(name, poly + ".poly");
                 s.addOptional(currentElement);
+                s.poly_name = name + ".poly";
                 list.add(s);
 
                 if(levelOneNode.hasChildNodes()) {
@@ -113,13 +175,18 @@ public class XmlParser {
             }
         }
         return list;
-    }
+    }*/
 
-    private class Struct {
+    public class RegionXmlStruct {
 
-        Struct(String name, String poly_extract) {
-            this.poly_extract = poly_extract;
+        String name, poly_name;
+
+        @Nullable
+        String lang, type, roads, srtm, hillshade, wiki, translate;
+
+        RegionXmlStruct(String name) {
             this.name = name;
+            this.poly_name = name + ".poly";
         }
 
         public void addOptional(Element element) {
@@ -140,9 +207,6 @@ public class XmlParser {
                 return null;
         }
 
-        String name, poly_extract;
 
-        @Nullable
-        String lang, type, roads, srtm, hillshade, wiki, translate;
     }
 }

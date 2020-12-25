@@ -1,79 +1,41 @@
 package my.pyrohivskyi;
-
-//import com.google.protobuf.CodedInputStream;
-//import com.google.protobuf.CodedOutputStream;
-
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.List;
 
 import my.pyrohivskyi.osmand.Region;
 
+import static my.pyrohivskyi.Generate.ANSI_GREEN;
+import static my.pyrohivskyi.Generate.ANSI_RED;
+import static my.pyrohivskyi.Generate.ANSI_RESET;
+
 public class Main {
+
+    public static final String ANSI_YELLOW = "\u001B[33m";
+
     public static void main(String[] ars) {
 
         System.out.println("Hello from Ivan");
 
-        XmlParser xmlParser = new XmlParser();
-        List<Region> regions =  xmlParser.parseXml("regions.xml");
-
-        /*Person person = Person.newBuilder()
-                .setId("1")
-                .setName("Ivan")
-                .setAge("35")
-                .build();
-
-        Person person2 = Person.newBuilder()
-                .setId("2")
-                .setName("Sergey")
-                .setAge("40")
-                .build();
-
-        //System.out.println("Hello from " + person.getName());*/
-
-        byte[] header = "HERE WILL BE SOME HEADER. BLABLA".getBytes();
-
-        try {
-            FileOutputStream fos = new FileOutputStream("my_test.bbb");
-
-            fos.write(header);
-
-            fos.getChannel().position(1000);
-
-            for(Region region : regions) {
-                region.writeDelimitedTo(fos);
-            }
-            fos.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+        Generate generate = new Generate("regions.xml", "polygons", "outfile.pbf");
+        if(generate.run()) {
+            System.out.println(ANSI_GREEN + "GENERATION SUCCESSFUL" + ANSI_RESET);
+        } else {
+            System.out.println(ANSI_RED + "GENERATION FAILED" + ANSI_RESET);
+            return;
         }
 
-        try (FileInputStream input = new FileInputStream("my_test.bbb")) {
-            input.getChannel().position(1000);
-            while (true) {
-                Region r = Region.parseDelimitedFrom(input);
-                if (r == null) { // parseDelimitedFrom returns null on EOF
-                    break;
-                }
-                System.out.println("Region: " + r.toString());
-            }
-            input.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+        System.out.println();
+        System.out.println(ANSI_YELLOW + "SEARCH INITIALIZATION" + ANSI_RESET);
+        Search search = new Search("outfile.pbf");
+
+        System.out.println();
+        System.out.println(ANSI_YELLOW + "SEARCH BY NAME" + ANSI_RESET);
+        Region r = search.findRegionByName("denmark");
+        System.out.println("Region: " + r.toString());
+
+        System.out.println(ANSI_YELLOW + "SEARCH BY COORDINATES" + ANSI_RESET);
+        List<Region> listRegions = search.findRegionByPoint(50, 30);
+        for(Region region : listRegions) {
+            System.out.println("Found: " + region.getName());
         }
-
-
-        /*WorkWithFile workWithFile = new WorkWithFile("my_test.txt");
-        try {
-            workWithFile.write("kjdkdjkdj");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }*/
     }
 }
