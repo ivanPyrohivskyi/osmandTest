@@ -39,6 +39,8 @@ public class Search {
                     input.getChannel().position(index.bytes);
                     Region r = Region.parseDelimitedFrom(input);
                     System.out.println("Read " + r.getSerializedSize() + " bytes of country data");
+                    if(index.withoutPoly)
+                        System.out.println(ANSI_RED + "COUNTRY WITHOUT POLYLINE" + ANSI_RESET);
                     input.close();
                     return r;
                 } catch (FileNotFoundException e) {
@@ -111,7 +113,7 @@ public class Search {
                 }
 
                 String[] arguments= line.split(" ");
-                if(arguments.length != 6)
+                if(arguments.length < 2)
                     continue;
                 indexStructureList.add(new IndexStructure(arguments));
             }
@@ -128,16 +130,23 @@ public class Search {
         String name;
         long bytes;
         double minLat, minLng, maxLat, maxLng;
+        boolean withoutPoly;
 
         IndexStructure(String[] arguments) {
-            if(arguments.length != 6)
-                return;
-            name = arguments[0];
-            bytes = Long.parseLong(arguments[1]);
-            minLat = Double.parseDouble(arguments[2]);
-            minLng = Double.parseDouble(arguments[3]);
-            maxLat = Double.parseDouble(arguments[4]);
-            maxLng = Double.parseDouble(arguments[5]);
+            if(arguments.length >= 2) {
+                name = arguments[0];
+                bytes = Long.parseLong(arguments[1]);
+
+                if(arguments.length == 6) {
+                    minLat = Double.parseDouble(arguments[2]);
+                    minLng = Double.parseDouble(arguments[3]);
+                    maxLat = Double.parseDouble(arguments[4]);
+                    maxLng = Double.parseDouble(arguments[5]);
+                    withoutPoly = false;
+                } else {
+                    withoutPoly = true;
+                }
+            }
         }
     }
 
